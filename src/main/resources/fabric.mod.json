@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "flipradar",
+  "version": "${version}",
+  "name": "FlipRadar",
+  "description": "Радар выгодных сделок для Hypixel SkyBlock: флипы на базаре и аукционе (BIN) в собственном дашборде.",
+  "authors": ["Claude"],
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "client": ["dev.flipradar.FlipRadarClient"]
+  },
+  "depends": {
+    "fabricloader": ">=0.19.3",
+    "minecraft": "~26.2",
+    "java": ">=25",
+    "fabric-api": "*"
+  }
+}

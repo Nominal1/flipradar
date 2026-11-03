@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FlipRadar</title>
+<style>
+:root{
+  --bg:#060a09; --panel:#0c1412; --panel2:#101b18; --line:#1a2b26;
+  --text:#cfe9de; --dim:#6f8f83; --accent:#3dff9a; --amber:#ffb347; --red:#ff5d6c;
+  --mono:"JetBrains Mono","Cascadia Code",ui-monospace,Consolas,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(1200px 600px at 80% -10%,#0f2a22 0,transparent 60%),var(--bg);
+  color:var(--text);font:14px/1.45 var(--mono);min-height:100vh}
+header{display:flex;align-items:center;gap:16px;padding:18px 28px;border-bottom:1px solid var(--line)}
+.radar{width:44px;height:44px;border-radius:50%;position:relative;border:1px solid var(--accent);
+  background:repeating-radial-gradient(circle,transparent 0 7px,#3dff9a22 7px 8px)}
+.radar::after{content:"";position:absolute;inset:0;border-radius:50%;
+  background:conic-gradient(from 0deg,#3dff9a00 0 70%,#3dff9aaa 100%);animation:spin 3s linear infinite}
+.radar i{position:absolute;width:5px;height:5px;background:var(--amber);border-radius:50%;top:11px;left:27px;
+  box-shadow:0 0 8px var(--amber);animation:blip 3s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes blip{0%,60%{opacity:0}75%{opacity:1}100%{opacity:0}}
+h1{margin:0;font-size:22px;letter-spacing:.22em;color:var(--accent);text-shadow:0 0 14px #3dff9a55}
+h1 small{display:block;letter-spacing:.08em;font-size:11px;color:var(--dim);text-shadow:none;font-weight:400}
+.pill{margin-left:auto;display:flex;align-items:center;gap:8px;padding:6px 12px;border:1px solid var(--line);
+  border-radius:999px;background:var(--panel);color:var(--dim);font-size:12px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent)}
+.dot.off{background:var(--red);box-shadow:0 0 8px var(--red)}
+main{max-width:1180px;margin:0 auto;padding:22px 28px 60px}
+.tabs{display:flex;gap:8px;margin-bottom:18px}
+.tab{padding:9px 18px;border:1px solid var(--line);background:var(--panel);color:var(--dim);cursor:pointer;
+  border-radius:8px;font:inherit;letter-spacing:.1em}
+.tab.on{color:var(--bg);background:var(--accent);border-color:var(--accent);font-weight:700}
+.hot{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:18px}
+.card{padding:14px 16px;border:1px solid var(--line);background:linear-gradient(160deg,var(--panel2),var(--panel));
+  border-radius:12px;cursor:pointer;position:relative;overflow:hidden}
+.card:hover{border-color:var(--accent)}
+.card .rank{position:absolute;right:12px;top:8px;font-size:34px;color:#3dff9a18;font-weight:800}
+.card .n{font-weight:700;margin-bottom:6px;padding-right:34px}
+.card .p{color:var(--accent);font-size:20px}
+.card .s{color:var(--dim);font-size:12px;margin-top:4px}
+.controls{display:flex;flex-wrap:wrap;gap:12px;padding:14px;border:1px solid var(--line);background:var(--panel);
+  border-radius:12px;margin-bottom:18px}
+.controls label{display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--dim);letter-spacing:.06em}
+.controls input,.controls select{background:#050807;border:1px solid var(--line);color:var(--text);
+  padding:7px 9px;border-radius:6px;font:inherit;width:140px}
+.controls input:focus,.controls select:focus{outline:1px solid var(--accent)}
+.tablewrap{border:1px solid var(--line);border-radius:12px;overflow:auto;background:var(--panel)}
+table{width:100%;border-collapse:collapse;min-width:760px}
+th{position:sticky;top:0;background:#0a110f;text-align:right;font-weight:600;color:var(--dim);
+  font-size:11px;letter-spacing:.1em;padding:10px 12px;border-bottom:1px solid var(--line)}
+td{padding:9px 12px;text-align:right;border-bottom:1px solid #12201c;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+tr.row{cursor:pointer}
+tr.row:hover td{background:#12211d}
+.name{color:var(--text)}
+.tier{font-size:10px;padding:1px 6px;border-radius:4px;margin-left:6px;border:1px solid var(--line);color:var(--dim)}
+.profit{color:var(--accent);font-weight:700}
+.bar{display:inline-block;width:70px;height:6px;background:#12201c;border-radius:3px;margin-left:8px;vertical-align:middle;overflow:hidden}
+.bar b{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--amber))}
+.warn{color:var(--amber)}
+.muted{color:var(--dim)}
+.empty{padding:40px;text-align:center;color:var(--dim)}
+#toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(30px);background:var(--accent);
+  color:#04110b;padding:9px 16px;border-radius:8px;font-weight:700;opacity:0;transition:.25s;pointer-events:none}
+#toast.show{opacity:1;transform:translateX(-50%)}
+footer{margin-top:22px;color:var(--dim);font-size:12px;line-height:1.6}
+@media(max-width:760px){.hot{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <div class="radar"><i></i></div>
+  <h1>FLIPRADAR<small>радар выгодных сделок · Hypixel SkyBlock</small></h1>
+  <div class="pill"><span class="dot" id="dot"></span><span id="status">подключение…</span></div>
+</header>
+<main>
+  <div class="tabs">
+    <button class="tab on" data-t="bz">БАЗАР</button>
+    <button class="tab" data-t="ah">АУКЦИОН · BIN</button>
+  </div>
+  <div class="hot" id="hot"></div>
+  <div class="controls" id="controls"></div>
+  <div class="tablewrap"><table><thead id="thead"></thead><tbody id="tbody"></tbody></table></div>
+  <footer>
+    Только информация: мод ничего не покупает и не продаёт за тебя. Клик по строке копирует название (базар) или команду
+    <span class="warn">/viewauction</span> (аукцион). Флипы по аукциону — приближение (камни, чары и книги не учитываются), проверяй лот в игре.
+  </footer>
+</main>
+<div id="toast"></div>
+<script>
+const $ = s => document.querySelector(s);
+const el = (t, props={}, ...kids) => { const e=document.createElement(t); Object.assign(e,props); kids.forEach(k=>e.append(k)); return e; };
+const LS = 'flipradar.settings';
+const defaults = { tab:'bz', bzTax:1.25, bzMinVol:20000, bzMaxMargin:80, bzMinProfit:50, bzSort:'score', bzQ:'',
+                   ahMinProfit:200000, ahMaxPrice:0, ahMinCount:3, ahSort:'profit', ahQ:'' };
+let S = Object.assign({}, defaults, JSON.parse(localStorage.getItem(LS) || '{}'));
+const save = () => localStorage.setItem(LS, JSON.stringify(S));
+let BZ = {updated:0, products:[]}, AH = {updated:0, flips:[]};
+
+function fmt(n){ n=Math.round(n); const a=Math.abs(n);
+  if(a>=1e9) return (n/1e9).toFixed(2)+'B'; if(a>=1e6) return (n/1e6).toFixed(2)+'M';
+  if(a>=1e4) return (n/1e3).toFixed(1)+'k'; return n.toLocaleString('ru-RU'); }
+function fmt1(n){ return (Math.round(n*10)/10).toLocaleString('ru-RU'); }
+function toast(t){ const e=$('#toast'); e.textContent=t; e.classList.add('show'); clearTimeout(toast.t); toast.t=setTimeout(()=>e.classList.remove('show'),1500); }
+function copy(t){ navigator.clipboard.writeText(t).then(()=>toast('Скопировано: '+t), ()=>toast('Не удалось скопировать')); }
+
+function field(label, key, type='number', opts){
+  let inp;
+  if(opts){ inp = el('select'); opts.forEach(([v,l])=>inp.append(el('option',{value:v,textContent:l}))); inp.value=S[key]; }
+  else { inp = el('input',{type, value:S[key], step:'any'}); }
+  inp.addEventListener('input', ()=>{ S[key] = (type==='number' && !opts) ? Number(inp.value) : inp.value; save(); render(); });
+  return el('label',{}, label, inp);
+}
+
+function bzRows(){
+  const tax = S.bzTax/100;
+  return BZ.products.map(p=>{
+    const buyAt = p.sell + 0.1, sellAt = p.buy - 0.1;
+    const net = sellAt*(1-tax) - buyAt;
+    const margin = net/buyAt*100;
+    const vol = Math.min(p.buyWeek, p.sellWeek);
+    return {...p, buyAt, sellAt, net, margin, vol, score: net*vol/168};
+  }).filter(r => r.net>=S.bzMinProfit && r.margin<=S.bzMaxMargin && r.vol>=S.bzMinVol
+      && (!S.bzQ || r.name.toLowerCase().includes(S.bzQ.toLowerCase())))
+    .sort((a,b)=>({score:b.score-a.score, net:b.net-a.net, margin:b.margin-a.margin, vol:b.vol-a.vol})[S.bzSort]);
+}
+function ahRows(){
+  return AH.flips.filter(r => r.profit>=S.ahMinProfit && r.count>=S.ahMinCount
+      && (!S.ahMaxPrice || r.low<=S.ahMaxPrice)
+      && (!S.ahQ || r.name.toLowerCase().includes(S.ahQ.toLowerCase())))
+    .sort((a,b)=>({profit:b.profit-a.profit, margin:b.margin-a.margin, low:a.low-b.low})[S.ahSort]);
+}
+
+function hotCards(rows, isBz){
+  const box=$('#hot'); box.replaceChildren();
+  rows.slice(0,3).forEach((r,i)=>{
+    const c = el('div',{className:'card'},
+      el('div',{className:'rank',textContent:'0'+(i+1)}),
+      el('div',{className:'n',textContent:r.name}),
+      el('div',{className:'p',textContent:'+'+fmt(isBz?r.net:r.profit)+(isBz?' / шт':'')}),
+      el('div',{className:'s',textContent: isBz
+        ? `маржа ${fmt1(r.margin)}% · объём ${fmt(r.vol)}/нед`
+        : `${fmt(r.low)} → ${fmt(r.second)} · маржа ${fmt1(r.margin)}%`}));
+    c.onclick=()=>copy(isBz? r.name : '/viewauction '+r.uuid);
+    box.append(c);
+  });
+}
+
+function render(){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on', t.dataset.t===S.tab));
+  const ctr=$('#controls'), head=$('#thead'), body=$('#tbody');
+  ctr.replaceChildren(); head.replaceChildren(); body.replaceChildren();
+
+  if(S.tab==='bz'){
+    ctr.append(field('НАЛОГ БАЗАРА, %','bzTax'), field('МИН. ОБЪЁМ / НЕД','bzMinVol'),
+      field('МИН. ПРИБЫЛЬ / ШТ','bzMinProfit'), field('МАКС. МАРЖА, %','bzMaxMargin'),
+      field('СОРТИРОВКА','bzSort','text',[['score','Потенциал / час'],['net','Прибыль / шт'],['margin','Маржа'],['vol','Объём']]),
+      field('ПОИСК','bzQ','text'));
+    head.append(el('tr',{}, ...['ПРЕДМЕТ','BUY ORDER','SELL OFFER','ПРИБЫЛЬ / ШТ','МАРЖА','ОБЪЁМ / НЕД','ПОТЕНЦИАЛ / Ч']
+      .map(t=>el('th',{textContent:t}))));
+    const rows=bzRows(); hotCards(rows,true);
+    const max=Math.max(1,...rows.slice(0,60).map(r=>r.margin));
+    rows.slice(0,80).forEach(r=>{
+      const tr=el('tr',{className:'row'},
+        el('td',{className:'name',textContent:r.name}),
+        el('td',{textContent:fmt1(r.buyAt)}), el('td',{textContent:fmt1(r.sellAt)}),
+        el('td',{className:'profit',textContent:'+'+fmt1(r.net)}),
+        el('td',{}, fmt1(r.margin)+'%', el('span',{className:'bar'}, el('b',{style:`width:${Math.min(100,r.margin/max*100)}%`}))),
+        el('td',{className:'muted',textContent:fmt(r.vol)}),
+        el('td',{className:'profit',textContent:fmt(r.score)}));
+      tr.onclick=()=>copy(r.name); body.append(tr);
+    });
+    if(!rows.length) body.append(el('tr',{}, el('td',{colSpan:7,className:'empty',textContent:'Нет сделок под фильтры (или данные ещё грузятся)'})));
+  } else {
+    ctr.append(field('МИН. ПРИБЫЛЬ','ahMinProfit'), field('МАКС. ЦЕНА (0 = без)','ahMaxPrice'),
+      field('МИН. ЛОТОВ В ГРУППЕ','ahMinCount'),
+      field('СОРТИРОВКА','ahSort','text',[['profit','Прибыль'],['margin','Маржа'],['low','Цена ↑']]),
+      field('ПОИСК','ahQ','text'));
+    head.append(el('tr',{}, ...['ПРЕДМЕТ','ЛОТОВ','ПОКУПКА (LBIN)','ПРОДАЖА (2-й)','ПРИБЫЛЬ','МАРЖА']
+      .map(t=>el('th',{textContent:t}))));
+    const rows=ahRows(); hotCards(rows,false);
+    const max=Math.max(1,...rows.slice(0,60).map(r=>r.margin));
+    rows.slice(0,80).forEach(r=>{
+      const tr=el('tr',{className:'row'},
+        el('td',{className:'name'}, r.name, el('span',{className:'tier',textContent:r.tier})),
+        el('td',{className:'muted',textContent:r.count}),
+        el('td',{textContent:fmt(r.low)}), el('td',{textContent:fmt(r.second)}),
+        el('td',{className:'profit',textContent:'+'+fmt(r.profit)}),
+        el('td',{}, fmt1(r.margin)+'%', el('span',{className:'bar'}, el('b',{style:`width:${Math.min(100,r.margin/max*100)}%`}))));
+      tr.onclick=()=>copy('/viewauction '+r.uuid); body.append(tr);
+    });
+    if(!rows.length) body.append(el('tr',{}, el('td',{colSpan:6,className:'empty',textContent:'Нет флипов под фильтры (аукцион обновляется раз в ~90 с)'})));
+  }
+}
+
+async function pull(url, apply){
+  try{ const r=await fetch(url,{cache:'no-store'}); apply(await r.json()); setOnline(true); render(); }
+  catch(e){ setOnline(false); }
+}
+function setOnline(ok){
+  $('#dot').classList.toggle('off',!ok);
+  if(!ok){ $('#status').textContent='нет связи с игрой'; return; }
+  const u = S.tab==='bz'?BZ.updated:AH.updated;
+  $('#status').textContent = u ? 'данные: '+Math.max(0,Math.round((Date.now()-u)/1000))+' с назад' : 'ждём первые данные…';
+}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{ S.tab=t.dataset.t; save(); render(); setOnline(true); });
+const loopBz=()=>pull('/api/bazaar',d=>BZ=d), loopAh=()=>pull('/api/auctions',d=>AH=d);
+loopBz(); loopAh(); setInterval(loopBz,15000); setInterval(loopAh,45000); setInterval(()=>setOnline(!$('#dot').classList.contains('off')),1000);
+render();
+</script>
+</body>
+</html>
